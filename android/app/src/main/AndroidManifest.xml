@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.chat_ai">
    <application
-        android:label="chat_ai"
+        android:label="Chat AI"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
