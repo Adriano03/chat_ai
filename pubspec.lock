@@ -309,6 +309,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.4.16"
+  type_text:
+    dependency: "direct main"
+    description:
+      name: type_text
+      sha256: fa6bd535b1eb6552a09fe652faf51c7f007e40edc9917a728721216ba02463f7
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.4"
   typed_data:
     dependency: transitive
     description:

@@ -2,6 +2,8 @@ import 'package:chat_ai/models/chat_model.dart';
 import 'package:chat_ai/repositories/chat_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:type_text/type_text.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -11,66 +13,78 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
+  final scrollCtrl = ScrollController();
+
+  bool loading = false;
   final inputCtrl = TextEditingController();
   final repository = ChatRepository(Dio());
   final messages = <ChatModel>[];
-  final scrollCtrl = ScrollController();
-  bool loading = false;
+  final scaffoldKey = GlobalKey<ScaffoldState>();
+
+  void scrollDown() {
+    Future.delayed(
+      const Duration(milliseconds: 200),
+      () {
+        scrollCtrl.animateTo(
+          scrollCtrl.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+        );
+      },
+    );
+  }
+
+  borderRadiusCirc(double topR, double topL) {
+    return BorderRadius.only(
+      topRight: Radius.circular(topR),
+      topLeft: Radius.circular(topL),
+      bottomRight: const Radius.circular(12),
+      bottomLeft: const Radius.circular(12),
+    );
+  }
+
+  Future<void> submit() async {
+    if (inputCtrl.text.isNotEmpty) {
+      final prompt = inputCtrl.text;
+
+      // Mensagem que eu mandei para a api;
+      setState(() {
+        messages.add(ChatModel(
+          message: prompt,
+          messageFrom: MessageFrom.me,
+        ));
+        inputCtrl.text = '';
+
+        scrollDown();
+        loading = true;
+      });
+
+      // Mensagem que eu recebi da api;
+      final chatResponse = await repository.promptMessage(prompt);
+      setState(() {
+        messages.add(
+          ChatModel(
+            message: chatResponse,
+            messageFrom: MessageFrom.bot,
+          ),
+        );
+        scrollDown();
+        loading = false;
+      });
+    }
+  }
+
+  var outlineBorder = OutlineInputBorder(
+    borderSide: const BorderSide(
+      color: Colors.blueGrey,
+    ),
+    borderRadius: BorderRadius.circular(12),
+  );
 
   @override
   Widget build(BuildContext context) {
-    void scrollDown() {
-      Future.delayed(
-        const Duration(milliseconds: 200),
-        () {
-          scrollCtrl.animateTo(
-            scrollCtrl.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-          );
-        },
-      );
-    }
-
-    Future<void> submit() async {
-      if (inputCtrl.text.isNotEmpty) {
-        final prompt = inputCtrl.text;
-
-        // Mensagem que eu mandei para a api;
-        setState(() {
-          messages.add(ChatModel(
-            message: prompt,
-            messageFrom: MessageFrom.me,
-          ));
-          inputCtrl.text = '';
-
-          scrollDown();
-          loading = true;
-        });
-
-        // Mensagem que eu recebi da api;
-        final chatResponse = await repository.promptMessage(prompt);
-        setState(() {
-          messages.add(
-            ChatModel(
-              message: chatResponse,
-              messageFrom: MessageFrom.bot,
-            ),
-          );
-          scrollDown();
-          loading = false;
-        });
-      }
-    }
-
-    var outlineBorder = OutlineInputBorder(
-      borderSide: const BorderSide(
-        color: Colors.blueGrey,
-      ),
-      borderRadius: BorderRadius.circular(12),
-    );
-
     return Scaffold(
+      key: scaffoldKey,
       appBar: AppBar(
         title: const Text(
           'Chat AI',
@@ -90,23 +104,47 @@ class _ChatScreenState extends State<ChatScreen> {
                   controller: scrollCtrl,
                   itemCount: messages.length,
                   itemBuilder: (_, i) {
+                    final myMessage = messages[i].messageFrom == MessageFrom.me;
+                    final msgLength = messages[i].message.length ~/ 28;
                     return Row(
                       children: [
-                        if (messages[i].messageFrom == MessageFrom.me)
-                          const Spacer(),
+                        if (myMessage) const Spacer(),
                         Container(
-                          margin: const EdgeInsets.all(12),
-                          width: MediaQuery.of(context).size.width * 0.7,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            color: Colors.grey.shade700,
+                          margin: const EdgeInsets.symmetric(
+                            vertical: 10,
                           ),
-                          child: Text(
-                            messages[i].message,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              color: Colors.white,
+                          width: MediaQuery.of(context).size.width * 0.88,
+                          padding: myMessage
+                              ? const EdgeInsets.all(12)
+                              : const EdgeInsets.only(
+                                  top: 0,
+                                  left: 12,
+                                  right: 12,
+                                  bottom: 12,
+                                ),
+                          decoration: BoxDecoration(
+                            borderRadius: myMessage
+                                ? borderRadiusCirc(0, 12)
+                                : borderRadiusCirc(12, 0),
+                            color: myMessage
+                                ? Colors.blueGrey.shade800
+                                : Colors.grey.shade700,
+                          ),
+                          child: InkWell(
+                            onLongPress: () {
+                              Clipboard.setData(
+                                ClipboardData(text: messages[i].message),
+                              );
+                            },
+                            child: TypeText(
+                              duration: myMessage
+                                  ? const Duration(seconds: 0)
+                                  : Duration(seconds: msgLength),
+                              messages[i].message,
+                              style: const TextStyle(
+                                fontSize: 17,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ),
@@ -130,10 +168,13 @@ class _ChatScreenState extends State<ChatScreen> {
                   enabledBorder: outlineBorder,
                   focusedBorder: outlineBorder,
                   suffixIcon: loading
-                      ? Padding(
-                          padding: const EdgeInsets.all(10),
+                      ? Container(
+                          padding: const EdgeInsets.all(12),
+                          height: 56,
+                          width: 56,
                           child: CircularProgressIndicator(
                             color: Theme.of(context).colorScheme.primary,
+                            strokeWidth: 5,
                           ),
                         )
                       : IconButton(

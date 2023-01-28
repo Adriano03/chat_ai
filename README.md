@@ -10,4 +10,4 @@ Aplicativo desenvolvido para conversar com a inteligência artificial da OpenAI;
 - Implementação a api da openAI;
 - Utilização do pacote Dio;
 - Modelo escolhido de frases - text-davinci-003;
-- Aleatoriedade das respostas - 0.1;
+- Aleatoriedade das respostas - 0.0;

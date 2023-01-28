@@ -15,10 +15,10 @@ class ChatRepository {
         data: {
           'model': "text-davinci-003",
           'prompt': prompt,
-          'temperature': 0.0,
+          'temperature': 0.5,
           'max_tokens': 1000,
           'top_p': 1,
-          'frequency_penalty': 0.0,
+          'frequency_penalty': 0.2,
           'presence_penalty': 0.0,
         },
         options: Options(
@@ -29,8 +29,8 @@ class ChatRepository {
       );
 
       return response.data['choices'][0]['text'];
-    } catch (e) {
-      return 'Ocorreu um erro! Tente novamente mais tarde.; $e';
+    } on DioError catch (e) {
+      return 'Ocorreu um erro! Tente novamente mais tarde.\n Cod-Erro: ${e.error}.\n Mensagem: ${e.message}';
     }
   }
 }
